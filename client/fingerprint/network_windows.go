@@ -1,5 +1,3 @@
-// +build !windows
-
 package fingerprint
 
 import (
@@ -13,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cbednarski/go-ipconfig"
 	"github.com/hashicorp/nomad/client/config"
 	"github.com/hashicorp/nomad/nomad/structs"
 )
@@ -38,11 +37,30 @@ type DefaultNetworkInterfaceDetector struct {
 }
 
 func (b *DefaultNetworkInterfaceDetector) Interfaces() ([]net.Interface, error) {
-	return net.Interfaces()
+	ipc := ipconfig.IPConfig{}
+	ifaces := []net.Interface{}
+
+	winfaces, err := ipc.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range winfaces {
+		ifaces = append(ifaces, item.Interface)
+	}
+
+	return ifaces, nil
 }
 
 func (b *DefaultNetworkInterfaceDetector) InterfaceByName(name string) (*net.Interface, error) {
-	return net.InterfaceByName(name)
+	ipc := ipconfig.IPConfig{}
+
+	iface, err := ipc.InterfaceByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &iface.Interface, nil
 }
 
 func (b *DefaultNetworkInterfaceDetector) Addrs(intf *net.Interface) ([]net.Addr, error) {
